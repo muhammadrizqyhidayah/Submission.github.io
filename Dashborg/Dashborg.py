@@ -7,8 +7,8 @@ import seaborn as sns
 st.title("Analisis Penyewaan Sepeda")
 
 # Load dataset
-day_df = pd.read_csv("../Data/day.csv")
-hour_df = pd.read_csv("../Data/hour.csv")
+day_df = pd.read_csv("Data/day.csv")
+hour_df = pd.read_csv("Data/hour.csv")
 
 # Konversi kolom tanggal
 day_df['dteday'] = pd.to_datetime(day_df['dteday'])
