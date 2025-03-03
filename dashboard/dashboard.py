@@ -2,55 +2,115 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from datetime import datetime
 
-# Judul Aplikasi
-st.title("Analisis Penyewaan Sepeda")
-
-# Load dataset
+# Load Data
 day_df = pd.read_csv("data/data_1.csv")
 hour_df = pd.read_csv("data/data_2.csv")
 
-# Konversi kolom tanggal
+# Convert date column to datetime format
 day_df['dteday'] = pd.to_datetime(day_df['dteday'])
 hour_df['dteday'] = pd.to_datetime(hour_df['dteday'])
 
-# Sidebar untuk filter
-date_range = st.sidebar.date_input("Pilih Rentang Tanggal", [day_df['dteday'].min(), day_df['dteday'].max()])
+# Inisialisasi session state untuk mode terang/gelap
+if "theme" not in st.session_state:
+    st.session_state["theme"] = "light"
 
-# Filter data berdasarkan rentang tanggal
-if isinstance(date_range, list) and len(date_range) == 2:
-    day_df = day_df[(day_df['dteday'] >= pd.Timestamp(date_range[0])) & (day_df['dteday'] <= pd.Timestamp(date_range[1]))]
+# Pilihan tema di sidebar
+theme_choice = st.sidebar.radio("🌗 Pilih Tema", ["Light", "Dark"])
 
-# Analisis berdasarkan musim
-st.subheader("Distribusi Penyewaan Sepeda Berdasarkan Musim")
-season_labels = {1: 'Spring', 2: 'Summer', 3: 'Fall', 4: 'Winter'}
-day_df['season_label'] = day_df['season'].map(season_labels)
-season_counts = day_df.groupby('season_label')['cnt'].sum()
-fig, ax = plt.subplots()
-ax.pie(season_counts, labels=season_counts.index, autopct='%1.1f%%', colors=['lightblue', 'orange', 'green', 'red'])
-ax.set_title("Distribusi Penyewaan Sepeda Berdasarkan Musim")
-st.pyplot(fig)
+# Update session state berdasarkan pilihan
+st.session_state["theme"] = "dark" if theme_choice == "Dark" else "light"
 
-# Rata-rata Penyewaan Sepeda Berdasarkan Jam
-st.subheader("Rata-rata Penyewaan Sepeda Berdasarkan Jam dalam Sehari")
-hourly_avg = hour_df.groupby('hr')['cnt'].mean()
-fig, ax = plt.subplots()
-ax.plot(hourly_avg.index, hourly_avg, marker='o', linestyle='-', color='purple')
-ax.set_xlabel('Jam')
-ax.set_ylabel('Rata-rata Penyewaan Sepeda')
-ax.set_title('Rata-rata Penyewaan Sepeda Berdasarkan Jam dalam Sehari')
-ax.grid()
-st.pyplot(fig)
+# Terapkan CSS untuk tema
+custom_css = """
+    <style>
+        body {{
+            background-color: {bg_color};
+            color: {text_color};
+        }}
+        .stApp {{
+            background-color: {bg_color};
+            color: {text_color};
+        }}
+    </style>
+"""
 
+if st.session_state["theme"] == "dark":
+    bg_color = "#0e1117"
+    text_color = "#ffffff"
+else:
+    bg_color = "#ffffff"
+    text_color = "#000000"
 
-# Tren Penyewaan Sepeda
-st.subheader("Tren Penyewaan Sepeda Sepanjang Tahun")
-fig, ax = plt.subplots()
-ax.plot(day_df['dteday'], day_df['cnt'], label='Total Penyewaan', color='blue')
-ax.set_xlabel("Tanggal")
-ax.set_ylabel("Jumlah Penyewaan")
-ax.set_title("Tren Penyewaan Sepeda Sepanjang Tahun")
-ax.legend()
-st.pyplot(fig)
+st.markdown(custom_css.format(bg_color=bg_color, text_color=text_color), unsafe_allow_html=True)
 
-st.write("Dashboard ini membantu memahami pola penyewaan sepeda berdasarkan musim, kondisi cuaca, dan tren tahunan.")
+# Judul Aplikasi
+st.title("📊 Analisis Data Penyewaan Sepeda")
+st.write("Aplikasi ini menyajikan analisis data penyewaan sepeda berdasarkan berbagai faktor seperti tren waktu, musim, dan jam dalam sehari.")
+
+# Sidebar Menu
+menu = st.sidebar.radio("Pilih Analisis:", ["Ringkasan Data", "Tren Penyewaan", "Penyewaan Berdasarkan Musim", "Penyewaan Berdasarkan Jam"])
+
+# Date Picker
+st.sidebar.subheader("📅 Pilih Rentang Tanggal")
+
+# Konversi min dan max date ke tipe date
+min_date = day_df['dteday'].min().date()
+max_date = day_df['dteday'].max().date()
+
+start_date = st.sidebar.date_input("Tanggal Mulai", min_date, min_value=min_date, max_value=max_date)
+end_date = st.sidebar.date_input("Tanggal Akhir", max_date, min_value=min_date, max_value=max_date)
+
+# Pastikan end_date tidak lebih kecil dari start_date
+if start_date > end_date:
+    st.sidebar.error("⚠️ Tanggal Akhir harus setelah Tanggal Mulai!")
+
+# Konversi ke datetime64 untuk filter data
+start_date = pd.to_datetime(start_date)
+end_date = pd.to_datetime(end_date)
+
+# Filter data berdasarkan tanggal yang dipilih
+filtered_day_df = day_df[(day_df['dteday'] >= start_date) & (day_df['dteday'] <= end_date)]
+filtered_hour_df = hour_df[(hour_df['dteday'] >= start_date) & (hour_df['dteday'] <= end_date)]
+
+if menu == "Ringkasan Data":
+    st.header("📋 Ringkasan Data")
+    st.write("### Data Harian (Setelah Filter Tanggal)")
+    st.dataframe(filtered_day_df.head())
+    st.write("### Data Per Jam (Setelah Filter Tanggal)")
+    st.dataframe(filtered_hour_df.head())
+    st.write("### Statistik Deskriptif")
+    st.write(filtered_day_df.describe())
+
+elif menu == "Tren Penyewaan":
+    st.header("📈 Tren Penyewaan Sepeda Sepanjang Tahun")
+    fig, ax = plt.subplots(figsize=(12, 6))
+    ax.plot(filtered_day_df['dteday'], filtered_day_df['cnt'], label='Total Penyewaan', color='blue')
+    ax.set_xlabel("Tanggal")
+    ax.set_ylabel("Jumlah Penyewaan")
+    ax.set_title("Tren Penyewaan Sepeda")
+    ax.legend()
+    st.pyplot(fig)
+
+elif menu == "Penyewaan Berdasarkan Musim":
+    st.header("🌤️ Penyewaan Sepeda Berdasarkan Musim")
+    season_labels = {1: 'Spring', 2: 'Summer', 3: 'Fall', 4: 'Winter'}
+    filtered_day_df['season_label'] = filtered_day_df['season'].map(season_labels)
+    season_counts = filtered_day_df.groupby('season_label')['cnt'].sum()
+    fig, ax = plt.subplots(figsize=(8, 8))
+    ax.pie(season_counts, labels=season_counts.index, autopct='%1.1f%%', colors=['lightblue', 'orange', 'green', 'red'], startangle=140)
+    ax.set_title("Distribusi Penyewaan Sepeda Berdasarkan Musim")
+    st.pyplot(fig)
+
+elif menu == "Penyewaan Berdasarkan Jam":
+    st.header("⏰ Rata-rata Penyewaan Sepeda Berdasarkan Jam")
+    hourly_avg = filtered_hour_df.groupby('hr')['cnt'].mean()
+    fig, ax = plt.subplots(figsize=(10, 5))
+    ax.plot(hourly_avg.index, hourly_avg, marker='o', linestyle='-', color='purple')
+    ax.set_xlabel("Jam")
+    ax.set_ylabel("Rata-rata Penyewaan Sepeda")
+    ax.set_title("Penyewaan Sepeda per Jam")
+    ax.set_xticks(range(0, 24))
+    ax.grid()
+    st.pyplot(fig)
