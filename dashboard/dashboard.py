@@ -3,6 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from datetime import datetime
+from sklearn.cluster import KMeans
+from sklearn.preprocessing import StandardScaler
 
 # Load Data
 day_df = pd.read_csv("data/data_1.csv")
@@ -46,7 +48,7 @@ st.title("\U0001F4CA Analisis Data Penyewaan Sepeda")
 st.write("Aplikasi ini menyajikan analisis data penyewaan sepeda berdasarkan berbagai faktor seperti tren waktu, musim, dan jam dalam sehari.")
 
 # Sidebar Menu
-menu = st.sidebar.radio("Pilih Analisis:", ["Ringkasan Data", "Tren Penyewaan", "Penyewaan Berdasarkan Musim", "Penyewaan Berdasarkan Jam"])
+menu = st.sidebar.radio("Pilih Analisis:", ["Ringkasan Data", "Tren Penyewaan", "Penyewaan Berdasarkan Musim", "Penyewaan Berdasarkan Jam", "Clustering Penyewaan", "RFM Analysis"])
 
 # Date Picker
 st.sidebar.subheader("\U0001F4C5 Pilih Rentang Tanggal")
@@ -68,7 +70,54 @@ filtered_hour_df = hour_df[(hour_df['dteday'] >= start_date) & (hour_df['dteday'
 # Set seaborn theme
 sns.set_theme(style="darkgrid" if st.session_state["theme"] == "dark" else "whitegrid")
 
-if menu == "Ringkasan Data":
+# Analisis Clustering Penyewaan
+if menu == "Clustering Penyewaan":
+    st.header("Clustering Penyewaan Sepeda")
+    
+    # Menggunakan KMeans untuk clustering berdasarkan jumlah penyewaan per jam
+    hourly_avg = filtered_hour_df.groupby('hr')['cnt'].mean().reset_index()
+    hourly_avg_scaled = StandardScaler().fit_transform(hourly_avg[['cnt']])
+    
+    # Fit KMeans
+    kmeans = KMeans(n_clusters=3, random_state=42)
+    hourly_avg['Cluster'] = kmeans.fit_predict(hourly_avg_scaled)
+    
+    # Visualisasi clustering
+    fig, ax = plt.subplots(figsize=(10, 5))
+    sns.scatterplot(data=hourly_avg, x='hr', y='cnt', hue='Cluster', palette='viridis', ax=ax)
+    ax.set_title("Clustering Penyewaan Sepeda Berdasarkan Jam")
+    ax.set_xlabel("Jam")
+    ax.set_ylabel("Jumlah Penyewaan")
+    st.pyplot(fig)
+    
+    st.subheader("📌 Kesimpulan")
+    st.write("Clustering berdasarkan jam menunjukkan kelompok waktu dengan penyewaan sepeda tinggi dan rendah.")
+
+# Analisis RFM (Recency, Frequency, Monetary)
+elif menu == "RFM Analysis":
+    st.header("Analisis RFM (Recency, Frequency, Monetary)")
+    
+    # Recency: Tanggal terakhir penyewaan
+    recent_date = filtered_day_df['dteday'].max()
+    filtered_day_df['Recency'] = (recent_date - filtered_day_df['dteday']).dt.days
+    
+    # Frequency: Jumlah penyewaan per pengguna (misalnya, berdasarkan 'instant' sebagai ID)
+    frequency = filtered_day_df.groupby('instant')['cnt'].count().reset_index(name='Frequency')
+    
+    # Monetary: Total penyewaan yang dilakukan oleh setiap pengguna
+    monetary = filtered_day_df.groupby('instant')['cnt'].sum().reset_index(name='Monetary')
+    
+    # Gabungkan data RFM
+    rfm = pd.merge(frequency, monetary, on='instant')
+    rfm = pd.merge(rfm, filtered_day_df[['instant', 'Recency']].drop_duplicates(), on='instant')
+    
+    st.write(rfm.head())
+    
+    st.subheader("📌 Kesimpulan")
+    st.write("Analisis RFM membantu untuk mengidentifikasi pengguna yang lebih aktif dan berpotensi lebih berharga.")
+
+# Analisis lainnya
+elif menu == "Ringkasan Data":
     st.header("\U0001F4CB Ringkasan Data")
     st.write("### Data Harian (Setelah Filter Tanggal)")
     st.dataframe(filtered_day_df.head())
