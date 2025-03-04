@@ -18,32 +18,24 @@ if "theme" not in st.session_state:
 
 # Pilihan tema di sidebar
 theme_choice = st.sidebar.radio("\U0001F317 Pilih Tema", ["Light", "Dark"])
-
-# Update session state berdasarkan pilihan
 st.session_state["theme"] = "dark" if theme_choice == "Dark" else "light"
 
 # Terapkan CSS untuk tema
-custom_css = """
+bg_color, text_color = ("#0e1117", "#ffffff") if st.session_state["theme"] == "dark" else ("#ffffff", "#000000")
+st.markdown(
+    f"""
     <style>
-        body {{
+        body, .stApp {{
             background-color: {bg_color};
             color: {text_color};
         }}
-        .stApp {{
-            background-color: {bg_color};
+        h1, h2, h3, h4, h5, h6 {{
             color: {text_color};
         }}
     </style>
-"""
-
-if st.session_state["theme"] == "dark":
-    bg_color = "#0e1117"
-    text_color = "#ffffff"
-else:
-    bg_color = "#ffffff"
-    text_color = "#000000"
-
-st.markdown(custom_css.format(bg_color=bg_color, text_color=text_color), unsafe_allow_html=True)
+    """,
+    unsafe_allow_html=True
+)
 
 # Judul Aplikasi
 st.title("\U0001F4CA Analisis Data Penyewaan Sepeda")
@@ -54,25 +46,23 @@ menu = st.sidebar.radio("Pilih Analisis:", ["Ringkasan Data", "Tren Penyewaan", 
 
 # Date Picker
 st.sidebar.subheader("\U0001F4C5 Pilih Rentang Tanggal")
-
-# Konversi min dan max date ke tipe date
 min_date = day_df['dteday'].min().date()
 max_date = day_df['dteday'].max().date()
 
 start_date = st.sidebar.date_input("Tanggal Mulai", min_date, min_value=min_date, max_value=max_date)
 end_date = st.sidebar.date_input("Tanggal Akhir", max_date, min_value=min_date, max_value=max_date)
 
-# Pastikan end_date tidak lebih kecil dari start_date
 if start_date > end_date:
     st.sidebar.error("\u26A0\uFE0F Tanggal Akhir harus setelah Tanggal Mulai!")
 
-# Konversi ke datetime64 untuk filter data
-start_date = pd.to_datetime(start_date)
-end_date = pd.to_datetime(end_date)
+start_date, end_date = pd.to_datetime(start_date), pd.to_datetime(end_date)
 
-# Filter data berdasarkan tanggal yang dipilih
-filtered_day_df = day_df[(day_df['dteday'] >= start_date) & (day_df['dteday'] <= end_date)]
-filtered_hour_df = hour_df[(hour_df['dteday'] >= start_date) & (hour_df['dteday'] <= end_date)]
+# Filter data berdasarkan tanggal
+filtered_day_df = day_df[(day_df['dteday'] >= start_date) & (day_df['dteday'] <= end_date)].copy()
+filtered_hour_df = hour_df[(hour_df['dteday'] >= start_date) & (hour_df['dteday'] <= end_date)].copy()
+
+# Set seaborn theme
+sns.set_theme(style="darkgrid" if st.session_state["theme"] == "dark" else "whitegrid")
 
 if menu == "Ringkasan Data":
     st.header("\U0001F4CB Ringkasan Data")
@@ -91,27 +81,33 @@ elif menu == "Tren Penyewaan":
     ax.set_ylabel("Jumlah Penyewaan")
     ax.set_title("Tren Penyewaan Sepeda")
     ax.legend()
+    plt.xticks(rotation=45)
     st.pyplot(fig)
     
     st.subheader("📌 Kesimpulan")
-    st.write("Dari grafik tren penyewaan sepeda, terlihat adanya pola musiman yang menunjukkan lonjakan permintaan pada bulan-bulan tertentu. Faktor cuaca dan hari libur dapat memengaruhi tren ini.")
+    st.write("Tren penyewaan sepeda menunjukkan pola musiman dengan lonjakan pada bulan tertentu.")
 
 elif menu == "Penyewaan Berdasarkan Musim":
     st.header("\U0001F324 Penyewaan Sepeda Berdasarkan Musim")
     season_labels = {1: 'Spring', 2: 'Summer', 3: 'Fall', 4: 'Winter'}
     filtered_day_df['season_label'] = filtered_day_df['season'].map(season_labels)
+
     season_counts = filtered_day_df.groupby('season_label')['cnt'].sum()
+    
     fig, ax = plt.subplots(figsize=(8, 8))
-    ax.pie(season_counts, labels=season_counts.index, autopct='%1.1f%%', colors=['lightblue', 'orange', 'green', 'red'], startangle=140)
+    ax.pie(season_counts, labels=season_counts.index, autopct='%1.1f%%', 
+           colors=['lightblue', 'orange', 'green', 'red'], startangle=140)
     ax.set_title("Distribusi Penyewaan Sepeda Berdasarkan Musim")
+    plt.axis('equal')  # Menjaga proporsi pie chart agar tidak terdistorsi
     st.pyplot(fig)
     
     st.subheader("📌 Kesimpulan")
-    st.write("Jumlah penyewaan sepeda cenderung lebih tinggi pada musim tertentu, seperti Summer dan Fall. Hal ini dapat disebabkan oleh cuaca yang lebih mendukung aktivitas bersepeda di luar ruangan.")
+    st.write("Penyewaan lebih tinggi pada musim panas dan gugur.")
 
 elif menu == "Penyewaan Berdasarkan Jam":
     st.header("⏰ Rata-rata Penyewaan Sepeda Berdasarkan Jam")
     hourly_avg = filtered_hour_df.groupby('hr')['cnt'].mean()
+    
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(hourly_avg.index, hourly_avg, marker='o', linestyle='-', color='purple')
     ax.set_xlabel("Jam")
@@ -122,4 +118,4 @@ elif menu == "Penyewaan Berdasarkan Jam":
     st.pyplot(fig)
     
     st.subheader("📌 Kesimpulan")
-    st.write("Pola penyewaan sepeda per jam menunjukkan peningkatan signifikan pada jam sibuk seperti pagi hari (sekitar pukul 07:00-09:00) dan sore hari (sekitar pukul 17:00-19:00). Ini mengindikasikan bahwa sepeda banyak digunakan untuk keperluan komuter kerja atau sekolah.")
+    st.write("Peningkatan signifikan terjadi pada jam sibuk pagi dan sore hari.")
