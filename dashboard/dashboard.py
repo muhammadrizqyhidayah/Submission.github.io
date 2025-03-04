@@ -17,7 +17,7 @@ if "theme" not in st.session_state:
     st.session_state["theme"] = "light"
 
 # Pilihan tema di sidebar
-theme_choice = st.sidebar.radio("🌗 Pilih Tema", ["Light", "Dark"])
+theme_choice = st.sidebar.radio("\U0001F317 Pilih Tema", ["Light", "Dark"])
 
 # Update session state berdasarkan pilihan
 st.session_state["theme"] = "dark" if theme_choice == "Dark" else "light"
@@ -46,14 +46,14 @@ else:
 st.markdown(custom_css.format(bg_color=bg_color, text_color=text_color), unsafe_allow_html=True)
 
 # Judul Aplikasi
-st.title("📊 Analisis Data Penyewaan Sepeda")
+st.title("\U0001F4CA Analisis Data Penyewaan Sepeda")
 st.write("Aplikasi ini menyajikan analisis data penyewaan sepeda berdasarkan berbagai faktor seperti tren waktu, musim, dan jam dalam sehari.")
 
 # Sidebar Menu
 menu = st.sidebar.radio("Pilih Analisis:", ["Ringkasan Data", "Tren Penyewaan", "Penyewaan Berdasarkan Musim", "Penyewaan Berdasarkan Jam"])
 
 # Date Picker
-st.sidebar.subheader("📅 Pilih Rentang Tanggal")
+st.sidebar.subheader("\U0001F4C5 Pilih Rentang Tanggal")
 
 # Konversi min dan max date ke tipe date
 min_date = day_df['dteday'].min().date()
@@ -64,7 +64,7 @@ end_date = st.sidebar.date_input("Tanggal Akhir", max_date, min_value=min_date, 
 
 # Pastikan end_date tidak lebih kecil dari start_date
 if start_date > end_date:
-    st.sidebar.error("⚠️ Tanggal Akhir harus setelah Tanggal Mulai!")
+    st.sidebar.error("\u26A0\uFE0F Tanggal Akhir harus setelah Tanggal Mulai!")
 
 # Konversi ke datetime64 untuk filter data
 start_date = pd.to_datetime(start_date)
@@ -75,7 +75,7 @@ filtered_day_df = day_df[(day_df['dteday'] >= start_date) & (day_df['dteday'] <=
 filtered_hour_df = hour_df[(hour_df['dteday'] >= start_date) & (hour_df['dteday'] <= end_date)]
 
 if menu == "Ringkasan Data":
-    st.header("📋 Ringkasan Data")
+    st.header("\U0001F4CB Ringkasan Data")
     st.write("### Data Harian (Setelah Filter Tanggal)")
     st.dataframe(filtered_day_df.head())
     st.write("### Data Per Jam (Setelah Filter Tanggal)")
@@ -84,7 +84,7 @@ if menu == "Ringkasan Data":
     st.write(filtered_day_df.describe())
 
 elif menu == "Tren Penyewaan":
-    st.header("📈 Tren Penyewaan Sepeda Sepanjang Tahun")
+    st.header("\U0001F4C8 Tren Penyewaan Sepeda Sepanjang Tahun")
     fig, ax = plt.subplots(figsize=(12, 6))
     ax.plot(filtered_day_df['dteday'], filtered_day_df['cnt'], label='Total Penyewaan', color='blue')
     ax.set_xlabel("Tanggal")
@@ -92,9 +92,12 @@ elif menu == "Tren Penyewaan":
     ax.set_title("Tren Penyewaan Sepeda")
     ax.legend()
     st.pyplot(fig)
+    
+    st.subheader("📌 Kesimpulan")
+    st.write("Dari grafik tren penyewaan sepeda, terlihat adanya pola musiman yang menunjukkan lonjakan permintaan pada bulan-bulan tertentu. Faktor cuaca dan hari libur dapat memengaruhi tren ini.")
 
 elif menu == "Penyewaan Berdasarkan Musim":
-    st.header("🌤️ Penyewaan Sepeda Berdasarkan Musim")
+    st.header("\U0001F324 Penyewaan Sepeda Berdasarkan Musim")
     season_labels = {1: 'Spring', 2: 'Summer', 3: 'Fall', 4: 'Winter'}
     filtered_day_df['season_label'] = filtered_day_df['season'].map(season_labels)
     season_counts = filtered_day_df.groupby('season_label')['cnt'].sum()
@@ -102,6 +105,9 @@ elif menu == "Penyewaan Berdasarkan Musim":
     ax.pie(season_counts, labels=season_counts.index, autopct='%1.1f%%', colors=['lightblue', 'orange', 'green', 'red'], startangle=140)
     ax.set_title("Distribusi Penyewaan Sepeda Berdasarkan Musim")
     st.pyplot(fig)
+    
+    st.subheader("📌 Kesimpulan")
+    st.write("Jumlah penyewaan sepeda cenderung lebih tinggi pada musim tertentu, seperti Summer dan Fall. Hal ini dapat disebabkan oleh cuaca yang lebih mendukung aktivitas bersepeda di luar ruangan.")
 
 elif menu == "Penyewaan Berdasarkan Jam":
     st.header("⏰ Rata-rata Penyewaan Sepeda Berdasarkan Jam")
@@ -114,3 +120,6 @@ elif menu == "Penyewaan Berdasarkan Jam":
     ax.set_xticks(range(0, 24))
     ax.grid()
     st.pyplot(fig)
+    
+    st.subheader("📌 Kesimpulan")
+    st.write("Pola penyewaan sepeda per jam menunjukkan peningkatan signifikan pada jam sibuk seperti pagi hari (sekitar pukul 07:00-09:00) dan sore hari (sekitar pukul 17:00-19:00). Ini mengindikasikan bahwa sepeda banyak digunakan untuk keperluan komuter kerja atau sekolah.")

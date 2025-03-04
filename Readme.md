@@ -1,2 +1,5 @@
 pip install streamlit
-python -m streamlit run Dashboard.py
+pip install pandas
+pip install matplotlib
+pip install seaborn
+python -m streamlit run dashboard/dashboard.py 
