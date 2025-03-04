@@ -12,6 +12,10 @@ hour_df = pd.read_csv("data/data_2.csv")
 day_df['dteday'] = pd.to_datetime(day_df['dteday'])
 hour_df['dteday'] = pd.to_datetime(hour_df['dteday'])
 
+# Mapping season numbers to labels
+season_labels = {1: "Spring", 2: "Summer", 3: "Fall", 4: "Winter"}
+day_df["season_label"] = day_df["season"].map(season_labels)
+
 # Inisialisasi session state untuk mode terang/gelap
 if "theme" not in st.session_state:
     st.session_state["theme"] = "light"
@@ -84,24 +88,21 @@ elif menu == "Tren Penyewaan":
     plt.xticks(rotation=45)
     st.pyplot(fig)
     
-    st.subheader("📌 Kesimpulan")
+    st.subheader("\U0001F4CC Kesimpulan")
     st.write("Tren penyewaan sepeda menunjukkan pola musiman dengan lonjakan pada bulan tertentu.")
 
 elif menu == "Penyewaan Berdasarkan Musim":
     st.header("\U0001F324 Penyewaan Sepeda Berdasarkan Musim")
-    season_labels = {1: 'Spring', 2: 'Summer', 3: 'Fall', 4: 'Winter'}
-    filtered_day_df['season_label'] = filtered_day_df['season'].map(season_labels)
-
     season_counts = filtered_day_df.groupby('season_label')['cnt'].sum()
     
     fig, ax = plt.subplots(figsize=(8, 8))
     ax.pie(season_counts, labels=season_counts.index, autopct='%1.1f%%', 
            colors=['lightblue', 'orange', 'green', 'red'], startangle=140)
     ax.set_title("Distribusi Penyewaan Sepeda Berdasarkan Musim")
-    plt.axis('equal')  # Menjaga proporsi pie chart agar tidak terdistorsi
+    plt.axis('equal')
     st.pyplot(fig)
     
-    st.subheader("📌 Kesimpulan")
+    st.subheader("\U0001F4CC Kesimpulan")
     st.write("Penyewaan lebih tinggi pada musim panas dan gugur.")
 
 elif menu == "Penyewaan Berdasarkan Jam":
@@ -117,5 +118,5 @@ elif menu == "Penyewaan Berdasarkan Jam":
     ax.grid()
     st.pyplot(fig)
     
-    st.subheader("📌 Kesimpulan")
+    st.subheader("\U0001F4CC Kesimpulan")
     st.write("Peningkatan signifikan terjadi pada jam sibuk pagi dan sore hari.")
